@@ -10,11 +10,11 @@ MARI_NET_ID_DEFAULT = 0x0001
 
 
 class DefaultPayloadType(IntEnum):
-    APPLICATION_DATA = 1
-    METRICS_REQUEST = 128
-    METRICS_RESPONSE = 129
-    METRICS_LOAD = 130
-    METRICS_PROBE = 140
+    APPLICATION_DATA = 0x01
+    METRICS_REQUEST = 0x90
+    METRICS_RESPONSE = 0x91
+    METRICS_LOAD = 0x92
+    METRICS_PROBE = 0x9C
 
     def as_bytes(self) -> bytes:
         return bytes([self.value])
@@ -28,6 +28,9 @@ class DefaultPayload(Packet):
         ]
     )
     type_: DefaultPayloadType = DefaultPayloadType.APPLICATION_DATA
+
+    def with_filler_bytes(self, length: int) -> bytes:
+        return self.to_bytes() + bytes([0xF1] * length)
 
 
 @dataclass
@@ -95,6 +98,8 @@ class MetricsProbePayload(Packet):
         return (self.cloud_rx_ts_us - self.cloud_tx_ts_us) / 1000.0
 
     def pdr_saturated(self, count_a: int, count_b: int) -> float:
+        if count_b == 0:
+            return 0.0
         pdr = count_a / count_b
         if pdr > 1.0:
             return 0.0
